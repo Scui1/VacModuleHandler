@@ -1,83 +1,101 @@
-class IceKey {
-    private var size = 0
-    private var rounds = 0
-    private lateinit var keySchedule: Array<IntArray>
+package decryption
 
-    // 8-bit Galois Field multiplication of a by b, modulo m.
-    // Just like arithmetic multiplication, except that
-    // additions and subtractions are replaced by XOR.
-    private fun gf_mult(a: Int, b: Int, m: Int): Int {
-        var a = a
-        var b = b
-        var res = 0
-        while (b != 0) {
-            if (b and 1 != 0) res = res xor a
-            a = a shl 1
-            b = b ushr 1
-            if (a >= 256) a = a xor m
-        }
-        return res
+class IceKey(private val level: Int, private val key: ByteArray) {
+    private val size = if (level < 1) 1 else level
+    private val rounds = if (level < 1) 8 else level * 16
+    private val keySchedule: Array<IntArray> = Array(rounds) { IntArray(3) }
+
+    init {
+        initKey(key)
     }
 
-    // 8-bit Galois Field exponentiation.
-    // Raise the base to the power of 7, modulo m.
-    private fun gf_exp7(b: Int, m: Int): Int {
-        var x: Int
-        if (b == 0) return 0
-        x = gf_mult(b, b, m)
-        x = gf_mult(b, x, m)
-        x = gf_mult(x, x, m)
-        return gf_mult(b, x, m)
-    }
-
-    // Carry out the ICE 32-bit permutation.
-    private fun perm32(x: Int): Int {
-        var x = x
-        var res = 0
-        var i = 0
-        while (x != 0) {
-            if (x and 1 != 0) res = res or pBox[i]
-            i++
-            x = x ushr 1
-        }
-        return res
-    }
-
-    // Initialise the substitution/permutation boxes.
-    private fun spBoxInit() {
+    // Encrypt a block of 8 bytes of data.
+    fun encrypt(plaintext: ByteArray): ByteArray {
+        val ciphertext = ByteArray(plaintext.size)
         var i: Int
-        spBox = Array(4) { IntArray(1024) }
+        var l = 0
+        var r = 0
         i = 0
-        while (i < 1024) {
-            val col = i ushr 1 and 0xff
-            val row = i and 0x1 or (i and 0x200 ushr 8)
-            var x: Int
-            x = gf_exp7(col xor sXor[0][row], sMod[0][row]) shl 24
-            spBox[0][i] = perm32(x)
-            x = gf_exp7(col xor sXor[1][row], sMod[1][row]) shl 16
-            spBox[1][i] = perm32(x)
-            x = gf_exp7(col xor sXor[2][row], sMod[2][row]) shl 8
-            spBox[2][i] = perm32(x)
-            x = gf_exp7(col xor sXor[3][row], sMod[3][row])
-            spBox[3][i] = perm32(x)
+        while (i < 4) {
+            l = l or (plaintext[i].toInt() and 0xff shl 24 - i * 8)
+            r = r or (plaintext[i + 4].toInt() and 0xff shl 24 - i * 8)
             i++
         }
+        i = 0
+        while (i < rounds) {
+            l = l xor roundFunc(r, keySchedule[i])
+            r = r xor roundFunc(l, keySchedule[i + 1])
+            i += 2
+        }
+        i = 0
+        while (i < 4) {
+            ciphertext[3 - i] = (r and 0xff).toByte()
+            ciphertext[7 - i] = (l and 0xff).toByte()
+            r = r ushr 8
+            l = l ushr 8
+            i++
+        }
+
+        return ciphertext
     }
 
-    // Create a new ICE key with the specified level.
-    fun IceKey(level: Int) {
-        if (!spBoxInitialised) {
-            spBoxInit()
-            spBoxInitialised = true
+    // Decrypt a block of 8 bytes of data.
+    fun decrypt(ciphertext: ByteArray): ByteArray {
+        val plaintext = ByteArray(ciphertext.size)
+        var i: Int
+        var l = 0
+        var r = 0
+        i = 0
+        while (i < 4) {
+            l = l or (ciphertext[i].toInt() and 0xff shl 24 - i * 8)
+            r = r or (ciphertext[i + 4].toInt() and 0xff shl 24 - i * 8)
+            i++
         }
-        if (level < 1) {
-            size = 1
-            rounds = 8
-        } else {
-            size = level
-            rounds = level * 16
+        i = rounds - 1
+        while (i > 0) {
+            l = l xor roundFunc(r, keySchedule[i])
+            r = r xor roundFunc(l, keySchedule[i - 1])
+            i -= 2
         }
-        keySchedule = Array(rounds) { IntArray(3) }
+        i = 0
+        while (i < 4) {
+            plaintext[3 - i] = (r and 0xff).toByte()
+            plaintext[7 - i] = (l and 0xff).toByte()
+            r = r ushr 8
+            l = l ushr 8
+            i++
+        }
+
+        return plaintext
+    }
+
+    // Set the key schedule of an ICE key.
+    private fun initKey(key: ByteArray) {
+        var i: Int
+        val kb = IntArray(4)
+        if (rounds == 8) {
+            i = 0
+            while (i < 4) {
+                kb[3 - i] = (key[i * 2].toInt() and 0xff shl 8
+                        or (key[i * 2 + 1].toInt() and 0xff))
+                i++
+            }
+            scheduleBuild(kb, 0, 0)
+            return
+        }
+        i = 0
+        while (i < size) {
+            var j: Int
+            j = 0
+            while (j < 4) {
+                kb[3 - j] = (key[i * 8 + j * 2].toInt() and 0xff shl 8
+                        or (key[i * 8 + j * 2 + 1].toInt() and 0xff))
+                j++
+            }
+            scheduleBuild(kb, i * 8, 0)
+            scheduleBuild(kb, rounds - 8 - i * 8, 8)
+            i++
+        }
     }
 
     // Set 8 rounds [n, n+7] of the key schedule of an ICE key.
@@ -111,50 +129,6 @@ class IceKey {
         }
     }
 
-    // Set the key schedule of an ICE key.
-    fun set(key: ByteArray) {
-        var i: Int
-        val kb = IntArray(4)
-        if (rounds == 8) {
-            i = 0
-            while (i < 4) {
-                kb[3 - i] = (key[i * 2].toInt() and 0xff shl 8
-                        or (key[i * 2 + 1].toInt() and 0xff))
-                i++
-            }
-            scheduleBuild(kb, 0, 0)
-            return
-        }
-        i = 0
-        while (i < size) {
-            var j: Int
-            j = 0
-            while (j < 4) {
-                kb[3 - j] = (key[i * 8 + j * 2].toInt() and 0xff shl 8
-                        or (key[i * 8 + j * 2 + 1].toInt() and 0xff))
-                j++
-            }
-            scheduleBuild(kb, i * 8, 0)
-            scheduleBuild(kb, rounds - 8 - i * 8, 8)
-            i++
-        }
-    }
-
-    // Clear the key schedule to prevent memory snooping.
-    fun clear() {
-        var i: Int
-        var j: Int
-        i = 0
-        while (i < rounds) {
-            j = 0
-            while (j < 3) {
-                keySchedule[i][j] = 0
-                j++
-            }
-            i++
-        }
-    }
-
     // The single round ICE f function.
     private fun roundFunc(p: Int, subkey: IntArray): Int {
         val tl: Int
@@ -175,73 +149,7 @@ class IceKey {
                 or spBox[2][ar ushr 10] or spBox[3][ar and 0x3ff])
     }
 
-    // Encrypt a block of 8 bytes of data.
-    fun encrypt(plaintext: ByteArray, ciphertext: ByteArray) {
-        var i: Int
-        var l = 0
-        var r = 0
-        i = 0
-        while (i < 4) {
-            l = l or (plaintext[i].toInt() and 0xff shl 24 - i * 8)
-            r = r or (plaintext[i + 4].toInt() and 0xff shl 24 - i * 8)
-            i++
-        }
-        i = 0
-        while (i < rounds) {
-            l = l xor roundFunc(r, keySchedule[i])
-            r = r xor roundFunc(l, keySchedule[i + 1])
-            i += 2
-        }
-        i = 0
-        while (i < 4) {
-            ciphertext[3 - i] = (r and 0xff).toByte()
-            ciphertext[7 - i] = (l and 0xff).toByte()
-            r = r ushr 8
-            l = l ushr 8
-            i++
-        }
-    }
-
-    // Decrypt a block of 8 bytes of data.
-    fun decrypt(ciphertext: ByteArray, plaintext: ByteArray) {
-        var i: Int
-        var l = 0
-        var r = 0
-        i = 0
-        while (i < 4) {
-            l = l or (ciphertext[i].toInt() and 0xff shl 24 - i * 8)
-            r = r or (ciphertext[i + 4].toInt() and 0xff shl 24 - i * 8)
-            i++
-        }
-        i = rounds - 1
-        while (i > 0) {
-            l = l xor roundFunc(r, keySchedule[i])
-            r = r xor roundFunc(l, keySchedule[i - 1])
-            i -= 2
-        }
-        i = 0
-        while (i < 4) {
-            plaintext[3 - i] = (r and 0xff).toByte()
-            plaintext[7 - i] = (l and 0xff).toByte()
-            r = r ushr 8
-            l = l ushr 8
-            i++
-        }
-    }
-
-    // Return the key size, in bytes.
-    fun keySize(): Int {
-        return size * 8
-    }
-
-    // Return the block size, in bytes.
-    fun blockSize(): Int {
-        return 8
-    }
-
     companion object {
-        private lateinit var spBox: Array<IntArray>
-        private var spBoxInitialised = false
         private val sMod = arrayOf(
             intArrayOf(333, 313, 505, 369),
             intArrayOf(379, 375, 319, 391),
@@ -268,5 +176,65 @@ class IceKey {
             0, 1, 2, 3, 2, 1, 3, 0,
             1, 3, 2, 0, 3, 1, 0, 2
         )
+        private val spBox = spBoxInit()
+
+        private fun gf_mult(a: Int, b: Int, m: Int): Int {
+            var a = a
+            var b = b
+            var res = 0
+            while (b != 0) {
+                if (b and 1 != 0) res = res xor a
+                a = a shl 1
+                b = b ushr 1
+                if (a >= 256) a = a xor m
+            }
+            return res
+        }
+
+        // 8-bit Galois Field exponentiation.
+        // Raise the base to the power of 7, modulo m.
+        private fun gf_exp7(b: Int, m: Int): Int {
+            var x: Int
+            if (b == 0) return 0
+            x = gf_mult(b, b, m)
+            x = gf_mult(b, x, m)
+            x = gf_mult(x, x, m)
+            return gf_mult(b, x, m)
+        }
+
+        // Carry out the ICE 32-bit permutation.
+        private fun perm32(x: Int): Int {
+            var x = x
+            var res = 0
+            var i = 0
+            while (x != 0) {
+                if (x and 1 != 0) res = res or pBox[i]
+                i++
+                x = x ushr 1
+            }
+            return res
+        }
+
+        // Initialise the substitution/permutation boxes.
+        private fun spBoxInit(): Array<IntArray> {
+            var i: Int
+            var newSpBox= Array(4) { IntArray(1024) }
+            i = 0
+            while (i < 1024) {
+                val col = i ushr 1 and 0xff
+                val row = i and 0x1 or (i and 0x200 ushr 8)
+                var x: Int
+                x = gf_exp7(col xor sXor[0][row], sMod[0][row]) shl 24
+                newSpBox[0][i] = perm32(x)
+                x = gf_exp7(col xor sXor[1][row], sMod[1][row]) shl 16
+                newSpBox[1][i] = perm32(x)
+                x = gf_exp7(col xor sXor[2][row], sMod[2][row]) shl 8
+                newSpBox[2][i] = perm32(x)
+                x = gf_exp7(col xor sXor[3][row], sMod[3][row])
+                newSpBox[3][i] = perm32(x)
+                i++
+            }
+            return newSpBox
+        }
     }
 }
