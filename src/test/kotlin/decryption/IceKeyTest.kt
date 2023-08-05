@@ -1,13 +1,29 @@
 package decryption
 
-import OriginalIceKey
-import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import kotlin.test.assertContentEquals
 
 class IceKeyTest {
 
+    private val KEY_BYTES = byteArrayOf(0xA6.toByte(), 0x23, 0x91.toByte(), 0x03, 0x7C, 0x75, 0x58, 0x7A)
+    private val DECRYPTED = byteArrayOf(0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8)
+    private val ENCRYPTED = byteArrayOf(0x6b, 0xf7.toByte(), 0x14, 0xfc.toByte(), 0x59, 0x06, 0x47, 0xff.toByte())
+
+    private val iceKey = IceKeyRefactored(1, KEY_BYTES)
+
     @Test
     fun testDecrypt() {
-        println("ldslflds")
+        val decryptedBytes = ByteArray(8)
+        iceKey.decrypt(ENCRYPTED, decryptedBytes)
+
+        assertContentEquals(DECRYPTED, decryptedBytes)
+    }
+
+    @Test
+    fun testEncrypt() {
+        val encryptedBytes = ByteArray(8)
+        iceKey.encrypt(DECRYPTED, encryptedBytes)
+
+        assertContentEquals(ENCRYPTED, encryptedBytes)
     }
 }
