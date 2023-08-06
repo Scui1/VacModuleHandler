@@ -218,7 +218,7 @@ class IceKey(private val level: Int, private val key: ByteArray) {
         // Initialise the substitution/permutation boxes.
         private fun spBoxInit(): Array<IntArray> {
             var i: Int
-            var newSpBox= Array(4) { IntArray(1024) }
+            val newSpBox= Array(4) { IntArray(1024) }
             i = 0
             while (i < 1024) {
                 val col = i ushr 1 and 0xff
