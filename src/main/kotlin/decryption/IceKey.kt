@@ -6,7 +6,7 @@ class IceKey(private val level: Int, private val key: ByteArray) {
     private val keySchedule: Array<IntArray> = Array(rounds) { IntArray(3) }
 
     init {
-        initKey(key)
+        setKey(key)
     }
 
     // Encrypt a block of 8 bytes of data.
@@ -70,7 +70,7 @@ class IceKey(private val level: Int, private val key: ByteArray) {
     }
 
     // Set the key schedule of an ICE key.
-    private fun initKey(key: ByteArray) {
+    fun setKey(key: ByteArray) {
         var i: Int
         val kb = IntArray(4)
         if (rounds == 8) {
