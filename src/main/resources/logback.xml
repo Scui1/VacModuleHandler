@@ -1,4 +1,5 @@
 <configuration>
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{YYYY-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
@@ -7,4 +8,6 @@
     <root level="info">
         <appender-ref ref="STDOUT"/>
     </root>
+    <logger name="ch.qos.logback" level="WARN"/>
+    <logger name="org.eclipse.jetty" level="WARN"/>
 </configuration>

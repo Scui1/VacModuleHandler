@@ -1,5 +1,6 @@
 plugins {
-    kotlin("jvm") version "1.9.0"
+    kotlin("jvm") version "1.9.10"
+    kotlin("plugin.serialization") version "1.9.10"
     application
 }
 
@@ -22,6 +23,11 @@ repositories {
 dependencies {
     implementation("ch.qos.logback:logback-classic:1.4.9")
     implementation("de.scui:kotlin-pefile:1.0")
+    implementation("io.ktor:ktor-server-status-pages-jvm:2.3.3")
+    implementation("io.ktor:ktor-server-core:2.3.3")
+    implementation("io.ktor:ktor-server-jetty:2.3.3")
+    implementation("io.ktor:ktor-server-content-negotiation-jvm:2.3.3")
+    implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:2.3.3")
     testImplementation(kotlin("test"))
 }
 
@@ -34,5 +40,5 @@ kotlin {
 }
 
 application {
-    mainClass.set("MainKt")
+    mainClass.set("io.ktor.server.jetty.EngineMain")
 }
