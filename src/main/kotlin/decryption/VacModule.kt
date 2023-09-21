@@ -6,7 +6,6 @@ import patternsearching.searchPattern
 import pefile.PEFile
 
 class VacModule(val moduleBytes: ByteArray, val runfuncIceKey: String) {
-    private val logger = LoggerFactory.getLogger("VacModule")
 
     fun decrypt(): ByteArray {
 
@@ -16,29 +15,25 @@ class VacModule(val moduleBytes: ByteArray, val runfuncIceKey: String) {
 
         val encryptedImportsSizeAddress = searchPattern(peFile, textSection, patternBytesFromString("68 ?? ?? ?? ?? 8B D1"), 1)
         if (encryptedImportsSizeAddress == 0) {
-            logger.error("Couldn't find pattern for encrypted imports size.")
-            return byteArrayOf()
+            throw DecryptionFailureException("Couldn't find pattern for encrypted imports size.")
         }
         val encryptedImportsSize = peFile.readInt(encryptedImportsSizeAddress + 1)
 
         val encryptedImportsStartAddress = searchPattern(peFile, textSection, patternBytesFromString("51 B9 ?? ?? ?? ?? 68"), 1) // pattern can differ sometimes
         if (encryptedImportsStartAddress == 0) {
-            logger.error("Couldn't find pattern for encrypted imports.")
-            return byteArrayOf()
+            throw DecryptionFailureException("Couldn't find pattern for encrypted imports.")
         }
         val encryptedImportsStartVirtual = peFile.readInt(encryptedImportsStartAddress + 2)
         val encryptedImportsStart = peFile.convertVirtualOffsetToRawOffset(encryptedImportsStartVirtual - peFile.getImageBase())
 
         val primaryIceKeyBase =  searchPattern(peFile, dataSection, patternBytesFromString("00 00 58 05 00 00 00 00 00 00 00 00 00 00"), 1)
         if (primaryIceKeyBase == 0) {
-            logger.error("Couldn't find pattern for primary ice key base.")
-            return byteArrayOf()
+            throw DecryptionFailureException("Couldn't find pattern for primary ice key base.")
         }
 
         val primaryIceKeyPattern = searchPattern(peFile, dataSection, patternBytesFromString("01 00 00 00"), 1, primaryIceKeyBase, 100)
         if (primaryIceKeyPattern == 0) {
-            logger.error("Couldn't find pattern for primary ice key.")
-            return byteArrayOf()
+            throw DecryptionFailureException("Couldn't find pattern for primary ice key.")
         }
         val primaryIceKey = peFile.read(primaryIceKeyPattern + 8, 8)
 
