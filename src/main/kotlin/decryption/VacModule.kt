@@ -31,7 +31,7 @@ class VacModule(val moduleBytes: ByteArray, val runfuncIceKey: String) {
 
         val primaryIceKeyBase =  searchPattern(peFile, dataSection, patternBytesFromString("00 00 58 05 00 00 00 00 00 00 00 00 00 00"), 1)
         if (primaryIceKeyBase == 0) {
-            logger.error("Couldn't find pattern for primary ice key.")
+            logger.error("Couldn't find pattern for primary ice key base.")
             return byteArrayOf()
         }
 
