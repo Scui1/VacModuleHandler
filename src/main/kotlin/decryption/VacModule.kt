@@ -10,7 +10,7 @@ class VacModule(val moduleBytes: ByteArray, val runfuncIceKey: String) {
 
     fun decrypt(): ByteArray {
 
-        val peFile = PEFile(moduleBytes, "lol")
+        val peFile = PEFile(moduleBytes)
         val textSection = peFile.getSectionByName(".text") ?: return byteArrayOf()
         val dataSection = peFile.getSectionByName(".data") ?: return byteArrayOf()
 
@@ -29,12 +29,18 @@ class VacModule(val moduleBytes: ByteArray, val runfuncIceKey: String) {
         val encryptedImportsStartVirtual = peFile.readInt(encryptedImportsStartAddress + 2)
         val encryptedImportsStart = peFile.convertVirtualOffsetToRawOffset(encryptedImportsStartVirtual - peFile.getImageBase())
 
-        val primaryIceKeyPattern = searchPattern(peFile, dataSection, patternBytesFromString("00 00 00 00 00 00 00 00 00 00 00 00 00 00 ?? ?? ?? ?? 01 00 00 00"), 1)
+        val primaryIceKeyBase =  searchPattern(peFile, dataSection, patternBytesFromString("00 00 58 05 00 00 00 00 00 00 00 00 00 00"), 1)
+        if (primaryIceKeyBase == 0) {
+            logger.error("Couldn't find pattern for primary ice key.")
+            return byteArrayOf()
+        }
+
+        val primaryIceKeyPattern = searchPattern(peFile, dataSection, patternBytesFromString("01 00 00 00"), 1, primaryIceKeyBase, 100)
         if (primaryIceKeyPattern == 0) {
             logger.error("Couldn't find pattern for primary ice key.")
             return byteArrayOf()
         }
-        val primaryIceKey = peFile.read(primaryIceKeyPattern + 0x1A, 8)
+        val primaryIceKey = peFile.read(primaryIceKeyPattern + 8, 8)
 
         val iceKey = IceKey(1, primaryIceKey)
 
