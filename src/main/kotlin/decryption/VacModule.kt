@@ -7,10 +7,9 @@ import pefile.PEFile
 class VacModule(private val moduleBytes: ByteArray, private val runfuncIceKey: String) {
 
     fun decrypt(): ByteArray {
-
         val peFile = PEFile(moduleBytes)
-        val textSection = peFile.getSectionByName(".text") ?: return byteArrayOf()
-        val dataSection = peFile.getSectionByName(".data") ?: return byteArrayOf()
+        val textSection = peFile.getSectionByName(".text") ?: throw DecryptionFailureException("Module has no .text section")
+        val dataSection = peFile.getSectionByName(".data") ?: throw DecryptionFailureException("Module has no .data section")
 
         val encryptedImportsSizeAddress = searchPattern(peFile, textSection, patternBytesFromString("68 ?? ?? ?? ?? 8B D1"), 1)
         if (encryptedImportsSizeAddress == 0) {
@@ -40,9 +39,9 @@ class VacModule(private val moduleBytes: ByteArray, private val runfuncIceKey: S
 
         // decrypt ice key we received in runfunc with key we received in vac module
         val runfuncIceKeyBytes = runfuncIceKey.split(" ").map { it.toUByte(16).toByte() }.toByteArray()
-        val secondaryIceKey = iceKey.decrypt(runfuncIceKeyBytes)
+        val secondaryIceKeyBytes = iceKey.decrypt(runfuncIceKeyBytes)
 
-        iceKey.setKey(secondaryIceKey)
+        iceKey.setKey(secondaryIceKeyBytes)
 
         for (encryptedAddress in encryptedImportsStart..< encryptedImportsStart + encryptedImportsSize step 8) {
             val encryptedBytes = peFile.read(encryptedAddress, 8)
