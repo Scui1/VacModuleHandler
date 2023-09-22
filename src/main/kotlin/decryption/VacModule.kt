@@ -1,11 +1,10 @@
 package decryption
 
-import org.slf4j.LoggerFactory
 import patternsearching.patternBytesFromString
 import patternsearching.searchPattern
 import pefile.PEFile
 
-class VacModule(val moduleBytes: ByteArray, val runfuncIceKey: String) {
+class VacModule(private val moduleBytes: ByteArray, private val runfuncIceKey: String) {
 
     fun decrypt(): ByteArray {
 
