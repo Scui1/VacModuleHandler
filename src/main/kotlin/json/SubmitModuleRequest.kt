@@ -3,4 +3,4 @@ package json
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class DecryptRequest(val iceKeyAsString: String)
+data class SubmitModuleRequest(val iceKeyAsString: String)
