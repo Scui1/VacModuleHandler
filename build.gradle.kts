@@ -1,6 +1,10 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
+val ktorVersion = "2.3.3"
 plugins {
     kotlin("jvm") version "1.9.10"
     kotlin("plugin.serialization") version "1.9.10"
+    id("com.github.johnrengelman.shadow") version "7.1.2"
     application
 }
 
@@ -23,12 +27,12 @@ repositories {
 dependencies {
     implementation("ch.qos.logback:logback-classic:1.4.9")
     implementation("de.scui:kotlin-pefile:1.0")
-    implementation("io.ktor:ktor-client-java:2.3.3")
-    implementation("io.ktor:ktor-server-status-pages-jvm:2.3.3")
-    implementation("io.ktor:ktor-server-core:2.3.3")
-    implementation("io.ktor:ktor-server-jetty:2.3.3")
-    implementation("io.ktor:ktor-server-content-negotiation-jvm:2.3.3")
-    implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:2.3.3")
+    implementation("io.ktor:ktor-client-java:$ktorVersion")
+    implementation("io.ktor:ktor-server-status-pages-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-server-core:$ktorVersion")
+    implementation("io.ktor:ktor-server-jetty:$ktorVersion")
+    implementation("io.ktor:ktor-server-content-negotiation-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:$ktorVersion")
     testImplementation(kotlin("test"))
 }
 
@@ -42,4 +46,8 @@ kotlin {
 
 application {
     mainClass.set("io.ktor.server.jetty.EngineMain")
+}
+
+tasks.withType<ShadowJar> {
+    archiveFileName.set("vacmodulehandler.jar")
 }

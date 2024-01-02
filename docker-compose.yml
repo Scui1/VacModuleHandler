@@ -1,0 +1,9 @@
+services:
+  scanmanager:
+    image: scui2/vacmodulehandler:latest
+    ports:
+      - "8083:8083"
+    environment:
+      DISCORD_WEBHOOK_URL=
+    volumes:
+      - "/home/vacModuleHandler/knownModules.json:/app/storage/knowModules.json"

@@ -15,8 +15,6 @@ import vacmodule.VacModule
 import vacmodule.VacModuleHandler
 
 fun Application.configureRouting() {
-    val logger = LoggerFactory.getLogger("Routing")
-
     routing {
 
         get("/alive") {
