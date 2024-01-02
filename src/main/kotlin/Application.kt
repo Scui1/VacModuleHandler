@@ -6,6 +6,7 @@ import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import misc.discordWebhookUrl
 import org.slf4j.LoggerFactory
+import vacmodule.KnownModulesHolder
 import web.configureRouting
 
 fun Application.main() {
@@ -20,6 +21,8 @@ fun Application.main() {
             call.respondText(text = exceptionMsg, status = HttpStatusCode.InternalServerError)
         }
     }
-    configureRouting()
     discordWebhookUrl = environment.config.property("discordWebhookUrl").getString()
+    KnownModulesHolder.readKnownModulesFromFile(environment.config.property("knownModulesFilePath").getString())
+    configureRouting()
+
 }

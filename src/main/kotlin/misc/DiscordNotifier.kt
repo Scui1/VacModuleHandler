@@ -30,7 +30,7 @@ suspend fun sendEmbedWithFilesToDiscord(title: String, message: String, color: I
     }
 
     if (!response.isSuccess)
-        logger.error("Sending to discord failed: ${response.errorMessage}")
+        logger.error("Sending to discord url $discordWebhookUrl failed: ${response.errorMessage}")
 }
 
 private suspend fun sendMessageWithBinaryData(jsonString: String, files: List<FileToSend>): HttpResponse {

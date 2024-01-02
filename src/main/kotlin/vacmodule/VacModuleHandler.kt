@@ -18,11 +18,12 @@ object VacModuleHandler {
 
         if (!vacModule.isKnownModule()) {
             sendModuleToDiscord(vacModule)
+            KnownModulesHolder.declareModuleAsKnown(vacModule)
             return SubmitModuleResponse(true, "sent to discord")
         }
 
 
-        return SubmitModuleResponse(true, "Something failed")
+        return SubmitModuleResponse(true, "Module already known.")
     }
 
     private fun sendModuleToDiscord(vacModule: VacModule) {
