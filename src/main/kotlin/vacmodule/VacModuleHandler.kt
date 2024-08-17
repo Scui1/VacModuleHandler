@@ -1,8 +1,5 @@
 package vacmodule
 
-import io.ktor.client.*
-import io.ktor.client.engine.java.*
-import io.ktor.client.request.*
 import json.SubmitModuleRequest
 import json.SubmitModuleResponse
 import kotlinx.coroutines.runBlocking
@@ -22,7 +19,6 @@ object VacModuleHandler {
             return SubmitModuleResponse(true, "sent to discord")
         }
 
-
         return SubmitModuleResponse(true, "Module already known.")
     }
 
@@ -31,8 +27,9 @@ object VacModuleHandler {
 
         val message = """
             CodeView signature: `${identifier.signature}`
-            Compiled at: ${identifier.formatBuildDate()}
-            SizeOfCode: ${identifier.formatSizeOfCode()}
+            SizeOfCode: ${identifier.getFormattedSizeOfCode()}
+            CRC32 of .text: ${identifier.getFormattedCodeHash()}
+            Compiled at: ${identifier.getFormattedTimestamp()}
             RunFunc IceKey: `${vacModule.runfuncIceKey}`
         """
             .replace("\r\n", "\\n")
@@ -40,8 +37,8 @@ object VacModuleHandler {
 
         runBlocking {
             sendEmbedWithFilesToDiscord("An unknown VAC module was streamed to a user.", message, 0xFFFF00, listOf(
-                FileToSend(vacModule.moduleBytes, "${identifier.formatSizeOfCode()}_encrypted.dll"),
-                FileToSend(vacModule.decrypt(), "${identifier.formatSizeOfCode()}_decrypted.dll")
+                FileToSend(vacModule.moduleBytes, "${identifier.getFormattedSizeOfCode()}_encrypted.dll"),
+                FileToSend(vacModule.decrypt(), "${identifier.getFormattedSizeOfCode()}_decrypted.dll")
             ))
         }
     }
