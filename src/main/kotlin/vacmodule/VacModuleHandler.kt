@@ -36,10 +36,11 @@ object VacModuleHandler {
             .replace("\n", "\\n")
 
         runBlocking {
-            sendEmbedWithFilesToDiscord("An unknown VAC module was streamed to a user.", message, 0xFFFF00, listOf(
-                FileToSend(vacModule.moduleBytes, "${identifier.getFormattedSizeOfCode()}_encrypted.dll"),
-                FileToSend(vacModule.decrypt(), "${identifier.getFormattedSizeOfCode()}_decrypted.dll")
-            ))
+            sendEmbedWithFilesToDiscord("An unknown VAC module was streamed to a user.", message, 0xFFFF00,
+                listOfNotNull(
+                    FileToSend(vacModule.moduleBytes, "${identifier.getFormattedSizeOfCode()}_encrypted.dll"),
+                    vacModule.decrypt()?.let { FileToSend(it, "${identifier.getFormattedSizeOfCode()}_decrypted.dll") }
+                ))
         }
     }
 }

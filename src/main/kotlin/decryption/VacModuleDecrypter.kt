@@ -4,16 +4,18 @@ import patternsearching.patternBytesFromString
 import patternsearching.searchPattern
 import pefile.PEFile
 
-fun decryptVacModule(peFile: PEFile, runfuncIceKey: String): ByteArray {
+private class DecryptionFailureException(message: String): Exception(message)
+
+fun decryptVacModule(peFile: PEFile, runfuncIceKey: String): Result<ByteArray> {
     val textSection =
-        peFile.getSectionByName(".text") ?: throw DecryptionFailureException("Module has no .text section")
+        peFile.getSectionByName(".text") ?: return failedDecryption("Module has no .text section")
     val dataSection =
-        peFile.getSectionByName(".data") ?: throw DecryptionFailureException("Module has no .data section")
+        peFile.getSectionByName(".data") ?: return failedDecryption("Module has no .data section")
 
     val encryptedImportsSizeAddress =
         searchPattern(peFile, textSection, patternBytesFromString("68 ?? ?? ?? ?? 8B D1"), 1)
     if (encryptedImportsSizeAddress == 0) {
-        throw DecryptionFailureException("Couldn't find pattern for encrypted imports size.")
+        return failedDecryption("Couldn't find pattern for encrypted imports size.")
     }
     val encryptedImportsSize = peFile.readInt(encryptedImportsSizeAddress + 1)
 
@@ -24,7 +26,7 @@ fun decryptVacModule(peFile: PEFile, runfuncIceKey: String): ByteArray {
         1
     ) // pattern can differ sometimes
     if (encryptedImportsStartAddress == 0) {
-        throw DecryptionFailureException("Couldn't find pattern for encrypted imports.")
+        return failedDecryption("Couldn't find pattern for encrypted imports.")
     }
     val encryptedImportsStartVirtual = peFile.readInt(encryptedImportsStartAddress + 2)
     val encryptedImportsStart =
@@ -33,13 +35,13 @@ fun decryptVacModule(peFile: PEFile, runfuncIceKey: String): ByteArray {
     val primaryIceKeyBase =
         searchPattern(peFile, dataSection, patternBytesFromString("00 00 58 05 00 00 00 00 00 00 00 00 00 00"), 1)
     if (primaryIceKeyBase == 0) {
-        throw DecryptionFailureException("Couldn't find pattern for primary ice key base.")
+        return failedDecryption("Couldn't find pattern for primary ice key base.")
     }
 
     val primaryIceKeyPattern =
         searchPattern(peFile, dataSection, patternBytesFromString("01 00 00 00"), 1, primaryIceKeyBase, 100)
     if (primaryIceKeyPattern == 0) {
-        throw DecryptionFailureException("Couldn't find pattern for primary ice key.")
+        return failedDecryption("Couldn't find pattern for primary ice key.")
     }
     val primaryIceKey = peFile.read(primaryIceKeyPattern + 8, 8)
 
@@ -51,11 +53,14 @@ fun decryptVacModule(peFile: PEFile, runfuncIceKey: String): ByteArray {
 
     iceKey.setKey(secondaryIceKeyBytes)
 
+    val newPeFile = PEFile.copyOf(peFile)
     for (encryptedAddress in encryptedImportsStart..<encryptedImportsStart + encryptedImportsSize step 8) {
         val encryptedBytes = peFile.read(encryptedAddress, 8)
         val decryptedBytes = iceKey.decrypt(encryptedBytes)
-        peFile.write(encryptedAddress, decryptedBytes)
+        newPeFile.write(encryptedAddress, decryptedBytes)
     }
 
-    return peFile.bytes
+    return Result.success(newPeFile.bytes)
 }
+
+private fun failedDecryption(reason: String): Result<ByteArray> = Result.failure(DecryptionFailureException(reason))

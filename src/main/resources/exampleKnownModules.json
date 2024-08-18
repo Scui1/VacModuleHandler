@@ -1,20 +1,2 @@
 [
-  {
-    "signature": "F582C191-D083-4BB5-924D-C4D53BC6D52A",
-    "sizeOfCode": 22528,
-    "codeHash": 997686304,
-    "timeDateStamp": 1698172224
-  },
-  {
-    "signature": "B0B74BCE-5F6C-4DDF-B670-5EA0907FC82D",
-    "sizeOfCode": 18944,
-    "codeHash": 2727895187,
-    "timeDateStamp": 1698172144
-  },
-  {
-    "signature": "52197F17-FB35-43E0-8EF7-3D808221F4B0",
-    "sizeOfCode": 16896,
-    "codeHash": 1349416103,
-    "timeDateStamp": 1698168058
-  }
 ]

@@ -1,7 +1,10 @@
 package vacmodule
 
 import decryption.decryptVacModule
+import org.slf4j.LoggerFactory
 import pefile.PEFile
+
+private val logger = LoggerFactory.getLogger("VacModule")
 
 class VacModule(val moduleBytes: ByteArray, val runfuncIceKey: String = "") {
     private val peFile = PEFile(moduleBytes)
@@ -15,8 +18,11 @@ class VacModule(val moduleBytes: ByteArray, val runfuncIceKey: String = "") {
         return identifier?.let { KnownModulesHolder.isKnownModule(it) } ?: false
     }
 
-    fun decrypt(): ByteArray {
-        return decryptVacModule(peFile, runfuncIceKey)
+    fun decrypt(): ByteArray? {
+        return decryptVacModule(peFile, runfuncIceKey).getOrElse { exception ->
+            logger.error("Decryption of module with sizeOfCode ${identifier?.getFormattedSizeOfCode()} failed: ${exception.message}")
+            return null
+        }
     }
 
 }
