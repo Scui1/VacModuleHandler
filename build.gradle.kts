@@ -26,7 +26,7 @@ repositories {
 
 dependencies {
     implementation("ch.qos.logback:logback-classic:1.4.9")
-    implementation("de.scui:kotlin-pefile:1.0")
+    implementation("de.scui:kotlin-pefile:1.1")
     implementation("io.ktor:ktor-client-java:$ktorVersion")
     implementation("io.ktor:ktor-server-status-pages-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-core:$ktorVersion")
